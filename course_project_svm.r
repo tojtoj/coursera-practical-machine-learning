@@ -20,7 +20,7 @@ nonZeroVarData = labeledData[,-nzv]
 # remove a classe feature (the last column)
 nonZeroVarData = nonZeroVarData[,-ncol(nonZeroVarData)]
 
-# create dummy variables from factor features
+# convert the data frame into a matrix
 labeledMatrix = as.matrix(nonZeroVarData)
 
 # split the training data into train a test set
