@@ -180,7 +180,7 @@ model</code></pre>
 ## Detection Rate         0.2842   0.1922   0.1721   0.1608   0.1835
 ## Detection Prevalence   0.2850   0.1935   0.1749   0.1621   0.1846
 ## Balanced Accuracy      0.9990   0.9959   0.9917   0.9899   0.9987</code></pre>
-<p>By looking at the results we can see that the expected out of sample measured as error is 0.99.We use a prediction accuracy as a metric since our data is not skewed and it should be a reasonably sufficient metric. Finally we can predict an output for yet unseen unlabeled data. We have to do a similar preprocessing as with our training data.</p>
+<p>By looking at the results we can see that the expected out of sample error is 0.99. We use a prediction accuracy as a metric since our data is not skewed and it should be a reasonably sufficient metric. Finally we can predict an output for yet unseen unlabeled data. We have to do a similar preprocessing as with our training data.</p>
 <pre class="r"><code>unlabeledData = read.csv(&quot;pml-testing.csv&quot;)
 unlabeledData = unlabeledData[,!(names(unlabeledData) %in% c(&quot;X&quot;, &quot;user_name&quot;, &quot;cvtd_timestamp&quot;, &quot;problem_id&quot;))]
 unlabeledData[unlabeledData == &quot;#DIV/0!&quot;] = NA

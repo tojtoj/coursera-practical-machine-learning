@@ -78,7 +78,7 @@ confMatrix = confusionMatrix(xtab)
 model
 confMatrix
 ```
-By looking at the results we can see that the expected out of sample measured as error is .We use prediction accuracy as a metric since our data is not skewed and it should be a reasonably sufficient metric. Finally we can predict an output for yet unseen unlabeled data. We have to do a similar preprocessing as with our training data.
+By looking at the results we can see that the expected out of sample error is 0.99. We use prediction accuracy as a metric since our data is not skewed and it should be a reasonably sufficient metric. Finally we can predict an output for yet unseen unlabeled data. We have to do a similar preprocessing as with our training data.
 ```{r}
 unlabeledData = read.csv("pml-testing.csv")
 unlabeledData = unlabeledData[,!(names(unlabeledData) %in% c("X", "user_name", "cvtd_timestamp", "problem_id"))]
