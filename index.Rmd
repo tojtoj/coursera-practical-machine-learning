@@ -1,0 +1,95 @@
+---
+title: "Practical Machine Learning Course Project Writeup"
+author: "Martin Janda"
+date: "24th of August 2015"
+output: html_document
+---
+
+For this excercise we've been given raw and dirty data which we need to preprocess. First load some useful libraries
+```{r}
+library(caret)
+library(doParallel)
+```
+We'll use a caret library that allows us to perform machine learning in a very concise way and we'll also allow parallel processing to fully utilize our CPU. First load our labeled data
+```{r}
+labeledData = read.csv("pml-training.csv")
+```
+
+Now let's look at the features. classes are pretty uniformly distributed with most data in class 'A' (well perfmed dumbell lifting).
+```{r}
+table(labeledData$classe)
+```
+
+We'll notice that the measurements come in five consecutive chunks, each for one class. Also, there is a feature 'X' which is basically a row number and under these circumstances it would make a perfect predictor so we'll leave this one out. There is also a 'user_name' feature that is not a meaningful predictor for analysing how well yet unseen people with different names perform dumbell lifting. Another useless column is 'cvtd_timestamp' that just tells us when the measurement was taken.
+```{r}
+labeledData = labeledData[,!(names(labeledData) %in% c("X", "user_name", "cvtd_timestamp"))]
+```
+As we said before, the data contains some remains after zero division. Let's substitute those for NAs.
+```{r}
+labeledData[labeledData == "#DIV/0!"] = NA
+```
+Now let's remove some near-zero-variance features that could distort our training process and create a numeric matrix from our labeled data frame. The matrix shouldn't contain the target variable.
+```{r}
+classe = labeledData$classe
+
+nzv = nearZeroVar(labeledData)
+nonZeroVarData = labeledData[,-nzv]
+
+# remove a classe feature (the last column)
+nonZeroVarData = nonZeroVarData[,-ncol(nonZeroVarData)]
+
+labeledMatrix = as.matrix(nonZeroVarData)
+```
+Now let's split our data into a training and a test set in a usual fashion: 60% of the data goes into the training set, 20% into the cross-validation set (see below) and 20% into the test set.
+```{r}
+set.seed(42)
+trainIndices = createDataPartition(classe, p = .8, list=FALSE)
+trainSet = labeledMatrix[trainIndices,]
+testSet = labeledMatrix[-trainIndices,]
+
+trainTarget = classe[trainIndices]
+testTarget = classe[-trainIndices]
+```
+The data contains lots of NAs so we'll impute them using a kNN algorithm. This is part of a data preprocessing and since we're going to use an SVM classifier, we'll need to normalize the features first.
+```{r}
+# center, scale and impute the missing values
+preProc = preProcess(trainSet, method=c("center", "scale", "knnImpute"))
+trainImputed = predict(preProc, trainSet)
+testImputed = predict(preProc, testSet)
+```
+Register multiple workers for parallel processing
+```{r}
+cluster = makeCluster(detectCores())
+registerDoParallel(cluster)
+```
+We can finally train the SVM classifier with a gaussian kernel. That allows us to fit a non-linear model. We can also try a few different values of a regularization parameter C. We'll use a 4-fold cross validation to average our training error.
+```{r}
+trainControl = trainControl(method="cv", number=4)
+svmGrid = expand.grid(C=c(0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0))
+model = train(x=trainImputed, y=trainTarget, trControl=trainControl, tuneGrid=svmGrid, method="svmRadialCost")
+```
+Now that we've trained our classifier, we can evaluate it on our labeled test set.
+```{r}
+predictions = predict(model, newdata=testImputed)
+xtab = table(predictions, testTarget)
+confMatrix = confusionMatrix(xtab)
+
+# print the model and a confusion matrix
+model
+confMatrix
+```
+By looking at the results we can see that the expected out of sample measured as error is .We use prediction accuracy as a metric since our data is not skewed and it should be a reasonably sufficient metric. Finally we can predict an output for yet unseen unlabeled data. We have to do a similar preprocessing as with our training data.
+```{r}
+unlabeledData = read.csv("pml-testing.csv")
+unlabeledData = unlabeledData[,!(names(unlabeledData) %in% c("X", "user_name", "cvtd_timestamp", "problem_id"))]
+unlabeledData[unlabeledData == "#DIV/0!"] = NA
+unlabeledData = unlabeledData[,-nzv]
+unlabeledMatrix = as.matrix(unlabeledData)
+unlabeledImputed = predict(preProc, newdata=unlabeledMatrix)
+unlabeledPredictions = predict(model, newdata=unlabeledImputed)
+```
+The predictions for new data are
+```{r}
+unlabeledPredictions
+```
+
